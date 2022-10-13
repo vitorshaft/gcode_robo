@@ -17,11 +17,11 @@ gcode = open("gcode.gcode","r")
 linhas = gcode.readlines()
 gcode.close()
 #O ARQUIVO DE SAIDA SERA SEMPRE "GCODE.JBI"
-jbi = open("GCODE.JBI","a")
+jbi = open("GCODE.src","a")
 #print(linhas[:25])
 
 #[X,Y,Z,aplha,gamma,beta] DO PONTO INICIAL
-atual = [700.0,150.0,434.0,178.59,-37.97,14.69,0]
+atual = [1200.0,0.0,900.0,0.0,80.0,0.0,0.0]
 
 nPontos = 0
 #VERIFICAR UTILIDADE DO RCONF
@@ -37,10 +37,10 @@ o,p,q: <180/>=180
 lista_pontos=[]	#VAI SER CONSULTADO NO PROXIMO LOOP
 arco = 1	#INICIA O ARCO EM MODO ARCON
 zGlobal = 430	#POSICAO Z MINIMA
-for item in linhas[:5000]:
-	if item.find(';') == -1:
+for n,item in enumerate(linhas[:9900]):
+	if item.find(';') == -1 and n%5 == 0:
 		#arco = False
-		atual = [700.0,100.0,431.0,178.59,-37.97,14.69,0]
+		atual = [100.0,-500.0,50.0,-23.743,-36.293,-206.374,0.0]
 		nPontos = nPontos+1
 		#se a linha tiver X...
 		if item.find('X') != -1:
@@ -67,22 +67,22 @@ for item in linhas[:5000]:
 		try:
 			tX = xis[0].split('.')	#pega o primeiro valor (X) e separa a parte inteira da flutuante
 			tX = float(int(tX[0]))+(float(int(tX[1]))/1000.000)	#converte para float e soma as duas partes
-			atual[0] = tX+700
+			atual[0] = tX+100
 		except Exception as a:
 			print(a)
 			pass
 		try:
 			tY = ips[0].split('.')
 			tY = float(int(tY[0]))+(float(int(tY[1]))/1000.000)
-			atual[1] = tY+100
+			atual[1] = tY-600
 		except Exception as b:
 			print(b)
 			pass
 		try:
 			tZ = ze[0].split('.')
 			tZ = float(int(tZ[0]))+(float(int(tZ[1]))/1000.000)
-			tZ = tZ+431	#offset do tampo da bancada
-			atual[2] = tZ
+			tZ = tZ+900	#offset do tampo da bancada
+			atual[2] = tZ-850
 			print("tZ: ",tZ,"zGlobal: ",zGlobal)
 			if tZ > zGlobal:
 				arco = 0	#Quando Z mudar, desligar o arco e esperar
@@ -103,46 +103,40 @@ for item in linhas[:5000]:
 			#arco = True	#O arco deve permanecer ligado enquanto nao houver mudanca em Z
 			print(c)
 			pass
-		atual[3],atual[4],atual[5] = 178.59,-37.97,14.69
+		atual[3],atual[4],atual[5] = -23.743,-36.293,-206.374
 		lista_pontos.append(atual)
 print(lista_pontos[1])
 print(lista_pontos[-1])
 npos = "///NPOS "+str(nPontos)+",0,0,0,0,0\n"
-cabecalho = ["/JOB\n","//NAME GCODE\n","//POS\n",npos,\
-    "///TOOL 0\n","///POSTYPE BASE\n","///RECTAN\n","///RCONF 0,1,1,0,0,0,0,0\n"]
-cabecalho2 = ["//INST\n","///DATE 2022/08/09 23:19\n",\
-    "///COMM Gerado com Python\n","///ATTR SC,RW,RJ\n","///GROUP1 RB1\n","NOP\n"]
+cabecalho = ["&ACCESS RVP\n","&REL 1\n","&PARAM TEMPLATE = C:\KRC\Roboter\Template","\\vorgabe\n","&PARAM EDITMASK = *\n",
+    "DEF GCODE ( )\n","EXT BAS (BAS_COMMAND :IN,REAL :IN )\n","INT I\n","BAS (#INITMOV,0)\n","FOR I=1 TO 6\n   $VEL_AXIS[I]=25\n   $ACC_AXIS[I]=50\nENDFOR\n","$VEL.CP=0.05\n$VEL.ORI1=200\n$VEL.ORI2=200\n$ACC.ORI1=100\n$ACC.ORI2=100\n","  $APO.CDIS = 0.5000\n  $ORI_TYPE = #VAR\n"]
+cabecalho2 = ["$BASE = {X 1462.4854,Y 0.0000,Z 664.8991,A 0.0000,B 0.0000,C 0.0000}\n","$TOOL={X 326.6638,Y 0.0000,Z 454.2762,A 180.0000,B -60.0005,C 0.0000}\n","$ADVANCE = 5\n","PTP  {A1 0.0000,A2 -90.0000,A3 90.0000,A4 0.0000,A5 0.0000,A6 0.0000}\n","PTP  {X 75.0000,Y 150.0000,Z 100.0000,A -23.4034,B 0.0000,C 180.0000,S 2,T 35}\n$VEL.CP=0.05  ;50mm/s\n"]
 jbi.writelines(cabecalho)
+jbi.writelines(cabecalho2)
 listaC = []
 for item in range(nPontos):
 	numeracao = str(item)
 	diferenca = 5-len(numeracao)
 	for c in range(diferenca):
 		numeracao = "0"+numeracao
-	coordenadas = "{:.3f}".format(lista_pontos[item][0])+","+\
-		"{:.3f}".format(lista_pontos[item][1])+","+\
-		"{:.3f}".format(lista_pontos[item][2])+","+\
-		"{:.3f}".format(lista_pontos[item][3])+","+\
-		"{:.3f}".format(lista_pontos[item][4])+","+\
-		"{:.3f}".format(lista_pontos[item][5])
+	coordenadas = "X "+"{:.3f}".format(lista_pontos[item][0])+",Y "+\
+		"{:.3f}".format(lista_pontos[item][1])+",Z "+\
+		"{:.3f}".format(lista_pontos[item][2])+",A "+\
+		"{:.3f}".format(lista_pontos[item][3])+",B "+\
+		"{:.3f}".format(lista_pontos[item][4])+",C "+\
+		"{:.3f}".format(lista_pontos[item][5])+"}"#",E1 0.00000}"
 	listaC.append([numeracao,coordenadas])
-	jbi.writelines(["C"+numeracao+"="+coordenadas,"\n"])
-jbi.writelines(cabecalho2)
-jbi.writelines(["MOVJ "+"C00000"+" V=150.0","\n"])
-jbi.writelines(["DOUT OT#(40) ON\n","DOUT OG#(7) 2\n","TIMER T=3.00\n","\n"])
+	jbi.writelines(["LIN {"+coordenadas,"\n"])
 
 arcoGlobal = False
 for i in range(nPontos):
 	arco = lista_pontos[i][6]
 	
 	if arco == 0 and arcoGlobal == False:
-		jbi.writelines(["ARCOF\n","TIMER T=60.0","\n"])#,"ARCON\n"])
+		#jbi.writelines(["ARCOF\n","TIMER T=60.0","\n"])#,"ARCON\n"])
 		arcoGlobal = True
 	elif arco == 1 and arcoGlobal == True:
-		jbi.writelines(["ARCON","\n"])
+		#jbi.writelines(["ARCON","\n"])
 		arcoGlobal = False
-	jbi.writelines(["MOVJ "+"C"+listaC[i][0]+" V=5.0","\n"])
-
-jbi.writelines(["ARCOF\n"])
 jbi.writelines(["END"])
 jbi.close()
