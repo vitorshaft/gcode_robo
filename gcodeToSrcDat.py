@@ -39,10 +39,10 @@ dat_header= '''&ACCESS RVP
 &PARAM EDITMASK = *
 &PARAM TEMPLATE = C:\\KRC\\Roboter\\Template\\vorgabe
 &PARAM DISKPATH = KRC:\\R1\\Program
-DEFDAT  GCODE_wdat
+DEFDAT  GCODE
 DECL BASIS_SUGG_T LAST_BASIS={POINT1[] "P9                      ",POINT2[] "P9                      ",CP_PARAMS[] "CPDAT7                  ",PTP_PARAMS[] "PDAT3                   ",CONT[] "C_DIS C_DIS             ",CP_VEL[] "0.025                   ",PTP_VEL[] "5                       ",SYNC_PARAMS[] "SYNCDAT                 ",SPL_NAME[] "S0                      ",A_PARAMS[] "ADAT0                   "}
 DECL FDAT FP1={TOOL_NO 1,BASE_NO 0,IPO_FRAME #BASE,POINT2[] " ",TQ_STATE FALSE}
-DECL PDAT PPDAT1={VEL 50.000,ACC 100.000,APO_DIST 100.000,GEAR_JERK 50.0000,EXAX_IGN 0}'''
+DECL PDAT PPDAT1={VEL 50.000,ACC 100.000,APO_DIST 100.000,GEAR_JERK 50.0000,EXAX_IGN 0}\n'''
 
 dat.write(dat_header)
 
@@ -95,7 +95,9 @@ for n,item in enumerate(linhas[:9900]):
 			tZ = ze[0].split('.')
 			tZ = float(int(tZ[0]))+(float(int(tZ[1]))/1000.000)
 			tZ = tZ+900	#offset do tampo da bancada
-			atual[2] = tZ-850
+			#mudei o valor na subtracao abaixo, mas há divergência no comportamento do Z
+			#creio que é algo devido a gcode, ou referência de versão
+			atual[2] = tZ-874.1
 			print("tZ: ",tZ,"zGlobal: ",zGlobal)
 			if tZ > zGlobal:
 				arco = 0	#Quando Z mudar, desligar o arco e esperar
@@ -127,10 +129,12 @@ cabecalho2 = ["$BASE = {X 1462.4854,Y 0.0000,Z 664.8991,A 0.0000,B 0.0000,C 0.00
 src.writelines(cabecalho)
 src.writelines(cabecalho2)
 listaC = []
-dat_str = 'DECL EPOS6 XP{:}={{X {:.3f},Y {:.3f},Z {:.3f},A {:.3f},B {:.3f},C {:.3f}}}\n'
+dat_str = 'DECL E6POS XP{:}={{X {:.3f},Y {:.3f},Z {:.3f},A {:.3f},B {:.3f},C {:.3f}}}\n'
 src_str = 'LIN XP{} C_DIS C_DIS\n'
-for n, ponto in enumerate(lista_pontos):
-	coordenada = dat_str.format(n, *ponto[:-1])
+primeiro_ponto = dat_str.format(0,100.0,-500.0,50.0,-23.743,-36.293,-206.374)
+dat.write(primeiro_ponto)
+for n, ponto in enumerate(lista_pontos[1:]):
+	coordenada = dat_str.format(n+1, *ponto[:-1])
 	dat.write(coordenada)
 	src.write(src_str.format(n))
 
