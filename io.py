@@ -10,25 +10,41 @@ def read_cli(code: str):
     Retorno
         body (Body): Objeto representando o corpo a ser imprimido
     '''
-    #code = ''
-    get_paths = re.compile('(?:\$\$(?:POLYLINE|HATCHES)\/(?:\d\,)?\d\,\d+(?:\,\d+.\d+,\d+.\d+)*)')
+    #compila um padrão RegEx que identifica as linhas de trajetória ou hatches (malhas)
+    get_paths = re.compile('(?:\$\$(?:POLYLINE\/0,|HATCHES\/)\d\,\d+(?:\,\d+\.\d+,\d+\.\d+)*)')
+    
+    #compila um padrão RegEx que captura as coordenadas dos pontos das que definem as linhas ou malhas
     get_coords = re.compile('(?:\$\$(?:POLYLINE\/0|HATCHES\/)\,2\,\d+)?\,(\d+\.\d+\,\d+\.\d+)+')
+    
+    #captura as coordenadas XYZ XYZ da caixa que limita a peça definida no espaço cartesiano 
     box = re.findall('\$\$DIMENSION\/(\d+.\d+),(\d+.\d+),(\d+.\d+),(\d+.\d+),(\d+.\d+),(\d+.\d+)',code, re.M)[0]
     layer_num = int(re.search('\$\$LAYERS\/(\d+)',code).group(1))
+    
+    #obtém um iterável com as sequências de camadas do CAM, bem como as trajetórias/malhas que as compõem 
     get_layers = re.finditer('\$\$LAYER\/(\d.+\d+)\n(?:\$\$((?:POLYLINE|HATCHES)\/(?:\d\,)?\d\,\d+(?:\,\d+.\d+,\d+.\d+)*)\n)*',code)
+    #obtém o valor de incremento de Z por camada (o Z da primeira camada é o Z do topo, não da base)
     z_inc = float(re.search('\$\$LAYER\/(\d+.\d+)', code).group(1))
+    
+    #converte os valores de coordenadas captados no RegEx (eles vem como str)
     lim_coords = [float(coord) for coord in box]
     xc = (lim_coords[3] + lim_coords[0]) / 2
     yc = (lim_coords[4] + lim_coords[1]) / 2
     zc = (lim_coords[5] + lim_coords[2]) / 2
+    #ponto central da peça no espaço de coordenadas dela
     center_pt = (xc, yc, zc)
     layers = []
+
+    #itera as camadas descritas no CAM
     for layer in get_layers:
         layer_paths =[]
+        #calcula o valor de Z da base da camada
         z = float(layer.group(1)) - z_inc
+        #obtém um iterável com as trajetórias e malhas contidas na camada
         lines = get_paths.finditer(layer.group(0))
+        #itera cada trajetória e malha contida na camada
         for line in lines:
             point_list = []
+            #itera a lista de pontos compondo cada trajetória e malha da camada
             for point in get_coords.findall(line.group()):
                 x, y  = point.split(',')
                 point_list.append((float(x)-xc, float(y)-yc, z))
@@ -187,6 +203,13 @@ def get_krl(body: Body, filename:str, lsr:bool = False):
         body (Body): objeto representando a peça a ser produzida
         filename (str): nome do arquivo de texto utilizado 
         lsr (bool): bool informando se os códigos de laser devem ser escritos
+
+    TODO
+    adicionar parametros de laser:
+        Potência
+        Velocidade
+        Espessura da chapa
+        Over/Under focus
     '''
     src = open(filename+".src","w")
     dat = open(filename+".dat","w")
@@ -203,9 +226,9 @@ def get_krl(body: Body, filename:str, lsr:bool = False):
     var_n = 0
     for layer in body:
         for path_num, path in enumerate(layer):
-            if lsr:
-                src.write(lsr_on_str)
             if type(path) == PolyLine:
+                if lsr:
+                    src.write(lsr_on_str)
                 for n, point in enumerate(path):
                     pt= (1717.55+point[0],-595.8+point[1], 314.95+point[2])
                     N = var_n + n
@@ -214,6 +237,18 @@ def get_krl(body: Body, filename:str, lsr:bool = False):
                 if lsr:
                     src.write(lsr_off_str)
                 var_n = var_n + len(path) + path_num
+            if type(path) == Hatch:
+                for line in path:
+                    if lsr:
+                        src.write(lsr_on_str)
+                    for n, point in enumerate(line):
+                        pt= (1717.55+point[0],-595.8+point[1], 314.95+point[2])
+                        N = var_n + n + 1
+                        dat.write(dat_str.format(N, *pt, *ang))
+                        src.write(src_str.format(N))
+                    if lsr:
+                        src.write(lsr_off_str)
+                    var_n = var_n + 2
     src.write(SRC_LSR_FOOTER)
     src.write("END")
     src.close()
@@ -263,9 +298,15 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
         body (Body): objeto representando a peça a ser produzida
         filename (str): nome do arquivo de texto utilizado 
         arc (bool): bool informando se os códigos do arco devem ser escritos
+    
+    TODO
+    Disparar o ARCON após a primeira coordenada
+    Adicionar parâmetros:
+        velocidade de soldagem
+        espessura da chapa
+        DBCP
     '''
-
-    jbi = open(filename+".jbi","w")
+    jbi = open(filename+".JBI","w")
     jbi.write(JBI_HEADER.format(filename, body.coord_num()+5)) #ADICIONAR NUMERO DE POSICOES
     decl_fmt = 'C{:0>5}={:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}\n'
     movj_fmt = 'MOVL C{:0>5} V=5.0\n'
@@ -286,6 +327,21 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
                 if arc:
                     comms = comms + 'ARCOF\n'
                 var_n = var_n + len(path) + path_num
+            if type(path) == Hatch:
+                for line in path:
+                    pt= (765.629+line[0][0],165.780+line[0][1],434.100+line[0][2])
+                    N = var_n + 6
+                    decls = decls + decl_fmt.format(N, *pt, *ang)
+                    comms = comms + movj_fmt.format(N)
+                    if arc:
+                        comms = comms + 'ARCON\n'
+                    pt= (765.629+line[1][0],165.780+line[1][1],434.100+line[1][2])
+                    N = var_n + 7
+                    decls = decls + decl_fmt.format(N, *pt, *ang)
+                    comms = comms + movj_fmt.format(N)
+                    if arc:
+                        comms = comms + 'ARCOF\n'
+                    var_n = var_n + 2
     jbi.write(decls + JBI_HEADER1 + comms)
     jbi.write("END")
     jbi.close()
