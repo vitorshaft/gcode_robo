@@ -259,36 +259,20 @@ def get_krl(body: Body, filename:str, lsr:bool = False):
 JBI_HEADER = '''/JOB
 //NAME {}
 //POS
-///NPOS {},0,0,0,0,0
+///NPOS 0,0,0,{},0,0
 ///TOOL 0
 ///POSTYPE BASE
 ///RECTAN
-///RCONF 0,1,1,0,0,0,0,0
-C00000=700.000,100.000,431.000,178.590,-37.970,14.690
-C00001=700.000,100.000,431.000,178.590,-37.970,14.690
-C00002=700.000,100.000,431.000,178.590,-37.970,14.690
-C00003=700.000,100.000,431.000,178.590,-37.970,14.690
-C00004=700.000,100.000,431.000,178.590,-37.970,14.690
-C00005=765.629,165.780,434.100,178.590,-37.970,14.690\n'''
+P00000=700.000,100.000,431.000,178.590,-37.970,14.690\n'''
 
 JBI_HEADER1 = '''//INST
 ///DATE 2022/08/09 23:19
-///COMM Gerado com Python
-///ATTR SC,RW,RJ
+///ATTR SC,RW
 ///GROUP1 RB1
 NOP
-MOVL C00000 V=150.0
+MOVL P00000 V=50.0
 DOUT OT#(40) ON
-DOUT OG#(7) 2
-TIMER T=3.00
-
-TIMER T=60.0
-MOVL C00000 V=5.0
-MOVL C00001 V=5.0
-MOVL C00002 V=5.0
-MOVL C00003 V=5.0
-MOVL C00004 V=5.0
-MOVL C00005 V=5.0\n'''
+DOUT OG#(7) 2\n'''
 
 def get_jbi(body: Body, filename:str, arc:bool = False):
     '''
@@ -310,7 +294,7 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
     jbi.write(JBI_HEADER.format(filename, body.coord_num()+5)) #ADICIONAR NUMERO DE POSICOES
     decl_fmt = 'C{:0>5}={:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}\n'
     movj_fmt = 'MOVL C{:0>5} V=5.0\n'
-    ang = [178.590, -37.970, 14.690]
+    ang = [-179.3958, -7.3004, 0.7371]
     var_n = 0
     decls = ''
     comms = ''
@@ -321,7 +305,7 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
                     if n == 1 and arc:
                         comms = comms + 'ARCON\n'
                     pt= (765.629+point[0],165.780+point[1],434.100+point[2])
-                    N = var_n + n + 6
+                    N = var_n + n + 1
                     decls = decls + decl_fmt.format(N, *pt, *ang)
                     comms = comms + movj_fmt.format(N)
                 if arc:
@@ -330,7 +314,7 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
             if type(path) == Hatch:
                 for line in path:
                     pt= (765.629+line[0][0],165.780+line[0][1],434.100+line[0][2])
-                    N = var_n + 6
+                    N = var_n + 1
                     decls = decls + decl_fmt.format(N, *pt, *ang)
                     comms = comms + movj_fmt.format(N)
                     if arc:
@@ -343,5 +327,5 @@ def get_jbi(body: Body, filename:str, arc:bool = False):
                         comms = comms + 'ARCOF\n'
                     var_n = var_n + 2
     jbi.write(decls + JBI_HEADER1 + comms)
-    jbi.write("END")
+    jbi.write("END\n")
     jbi.close()
