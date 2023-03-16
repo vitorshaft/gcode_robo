@@ -1,0 +1,30 @@
+/JOB
+//NAME $filename
+//POS
+///NPOS $i,0,0,0,0,0
+///TOOL 0
+///POSTYPE ROBOT
+///RECTAN
+///RCONF 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+C00000=700.000,100.000,431.000,178.590,-37.970,14.690
+#foreach ($layer in $layers)##
+#foreach ($coord in $layer.lines)##
+C$coord.i=$coord.x,$coord.y,$coord.z,$ang[0],$ang[1],$ang[2]
+#end##
+#end##
+//INST
+///DATE 2022/08/09 23:19
+///ATTR SC,RW,RJ
+////FRAME ROBOT
+///GROUP1 RB1
+NOP
+MOVL C00000 V=50.0
+DOUT OT#(40) ON
+#foreach ($layer in $layers)##
+DOUT OG#(7) $program
+ARCON
+#foreach ($coord in $layer.lines)##
+MOVL C$coord.i V=$speed
+#end##
+ARCOF
+#end##
