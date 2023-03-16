@@ -1,6 +1,24 @@
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
+class CoordIndex:  
+    def __init__(self, value):
+        self.value = value
+    
+    @classmethod
+    def start(cls):
+        return CoordIndex(0)
+    
+    def next(self):
+        self.value += 1
+    
+    def get(self):
+        return self.value
+
+
+INDEX = CoordIndex.start()
+
+
 class PolyLine(list):
     '''
     Objeto que representa linhas de adição de material
@@ -76,7 +94,7 @@ class Hatch(list):
             item.plot(ax)
 
 
-class Layer(list):
+class Layer(list[Hatch|PolyLine]):
     def __init__(self, z: float, paths: list):
         self.z = z
         super().__init__(paths)
@@ -84,6 +102,20 @@ class Layer(list):
     def plot(self, ax = None):
         for path in self:
             path.plot(ax)
+    
+    def unpack_paths_for_velocity(self):
+        lines = []
+        for path in self:
+            if type(path) == Hatch:
+                path = [*path]
+            #if type(path) == PolyLine:
+            for coord in path:
+                lines.append({"i":INDEX.get(),
+                                "x": coord[0],
+                                "y": coord[1],
+                                "z": coord[2]})
+                INDEX.next()
+        return {"lines": lines}
 
 
 class Body(list[Layer]):
@@ -143,3 +175,10 @@ class Body(list[Layer]):
         pts = [center, (x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0), (x0,y0,z0),center]
         return PolyLine(pts)
 
+    def gen_velocity_dict(self) -> dict:
+        '''
+        Gera um dicionário com as entradas para geração de um dicionário para
+        escrita no template velocity
+        '''
+        INDEX.start()
+        return {'layers': [layer.unpack_paths_for_velocity() for layer in self]}
