@@ -9,6 +9,9 @@ class CoordIndex:
     def start(cls):
         return CoordIndex(0)
     
+    def restart(self):
+        self.value = 0
+    
     def next(self):
         self.value += 1
     
@@ -103,17 +106,17 @@ class Layer(list[Hatch|PolyLine]):
         for path in self:
             path.plot(ax)
     
-    def unpack_paths_for_velocity(self):
+    def unpack_paths_for_velocity(self, adjust_function, params):
         lines = []
         for path in self:
             if type(path) == Hatch:
                 path = [*path]
-            #if type(path) == PolyLine:
             for coord in path:
-                lines.append({"i":INDEX.get(),
-                                "x": coord[0],
-                                "y": coord[1],
-                                "z": coord[2]})
+                adj_coord = adjust_function(coord, self.z, params)
+                lines.append({"i":f"{INDEX.get():0>5}",
+                                "x": f"{adj_coord[0]:.3f}",
+                                "y": f"{adj_coord[1]:.3f}",
+                                "z": f"{adj_coord[2]:.3f}"})
                 INDEX.next()
         return {"lines": lines}
 
@@ -175,10 +178,11 @@ class Body(list[Layer]):
         pts = [center, (x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0), (x0,y0,z0),center]
         return PolyLine(pts)
 
-    def gen_velocity_dict(self) -> dict:
+    def gen_velocity_dict(self, adjust_func, func_params) -> dict:
         '''
         Gera um dicionário com as entradas para geração de um dicionário para
         escrita no template velocity
         '''
-        INDEX.start()
-        return {'layers': [layer.unpack_paths_for_velocity() for layer in self]}
+        INDEX.restart()
+        return {'layers': [layer.unpack_paths_for_velocity(adjust_func, func_params) for layer in self]}
+    
