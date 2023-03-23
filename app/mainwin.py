@@ -7,7 +7,8 @@ kuka_opts = [
     {'text': 'Potência (W):','var_type': DoubleVar,'name': 'power'},
     {'text': 'Vel. de Soldagem (mm/s):','var_type': DoubleVar,'name': 'speed'},
     {'text': 'Espessura da chapa(mm):','var_type': DoubleVar,'name': 'thickness'},
-    {'text': 'Over/Under Focus (mm):','var_type': DoubleVar,'name': 'focus'}
+    {'text': 'Over/Under Focus (mm):','var_type': DoubleVar,'name': 'focus'},
+    {'text': 'Tempo entre camadas (s):', 'var_type': IntVar, 'name': 'hold_time'}
 ]
 
 yask_opts = [

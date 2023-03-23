@@ -103,10 +103,10 @@ $ADVANCE = 5
 PTP  XPREF
 $VEL.CP=0.05  ;50mm/s\n'''
 
-SRC_LSR_HEADER = ''';FOLD GasInit    Gas: GasDef;%{PE}%R 6.1.22,%MKUKATPLASER,%CLSR_GAS_INIT,%VLSR_GAS_INIT,%P 3:#TECH, 5:GasDef 
+SRC_LSR_HEADER = ''';FOLD GasInit    Gas: GasDef;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_GAS_INIT,%VLSR_GAS_INIT,%P 3:#TECH, 5:GasDef 
 Trigger When PATH = 0 DELAY=Lsr_InitGasDly DO LSR_InitGas(#TECH , GDGasDef.ProcGas , GDGasDef.RootGas , 0 ) PRIO=-1
 ;ENDFOLD
-;FOLD LIN P4 CONT Vel=0.2 m/s CPDAT1 Tool[1]:teste_D70 Base[0];%{PE}%R 8.3.42,%MKUKATPBASIS,%CMOVE,%VLIN,%P 1:LIN, 2:P4, 3:C_DIS C_DIS, 5:0.2, 7:CPDAT1
+;FOLD LIN P4 CONT Vel={speed} m/s CPDAT1 Tool[1]:teste_D70 Base[0];%{{PE}}%R 8.3.42,%MKUKATPBASIS,%CMOVE,%VLIN,%P 1:LIN, 2:P4, 3:C_DIS C_DIS, 5:{speed}, 7:CPDAT1
 $BWDSTART=FALSE
 LDAT_ACT=LCPDAT1
 FDAT_ACT=FP4
@@ -162,7 +162,7 @@ TRIGGER WHEN PATH=10 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LP
 TRIGGER WHEN PATH=10 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
 ;ENDFOLD\n'''
 
-lsr_on_str = ''';FOLD LSR   On Path=10 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:1400, 13:500, 16:ME1, 18:LS1, 20:LU0 
+lsr_on_str = ''';FOLD LSR   On Path=10 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:{power}, 13:500, 16:ME1, 18:LS1, 20:LU0 
 TRIGGER WHEN PATH=10 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, LMME1) DO LSR_PRE_ON(#TECH, #OFF_SPL, LPLS1) PRIO=-1
 TRIGGER WHEN PATH=10 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LPLS1) PRIO=-1
 TRIGGER WHEN PATH=10 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
@@ -177,10 +177,16 @@ TRIGGER WHEN PATH=0 DELAY=LsrDelayOff DO LSRO_LsrSync1 = FALSE
 TRIGGER WHEN PATH=0 DELAY=LSR_ShutterDelay DO LSR_OFF(#TECH, #OFF_SPL, LMME1, LPLS3,  False) PRIO=-1
 ;ENDFOLD\n'''
 
+MOV_CMD = ''';FOLD LIN P{index} CONT Vel={speed} m/s CPDAT1 Tool[1]:teste_D70 Base[0];%{{PE}}%R 8.3.42,%MKUKATPBASIS,%CMOVE,%VLIN,%P 1:LIN, 2:P{index}, 3:C_DIS C_DIS, 5:{speed}, 7:CPDAT1
+LIN XP{index} C_DIS C_DIS
+;ENDFOLD\n'''
+
+WAIT_CMD = ''';FOLD WAIT Time={hold_time} sec; %{{PE}}%R 8.3.42,%MKUKATPBASIS,%CWAIT,%VWAIT,%P 3:{hold_time}\n'''
+
 #{A1 0.0000,A2 -90.0000,A3 90.0000,A4 0.0000,A5 0.0000,A6 0.0000}
 
 def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=None,
-    thickness:float=None, focus:float=None):
+    thickness:float=None, focus:float=None, hold_time:float=None):
     '''
     A partir de um objeto body gera o código KRL para manufatura do objeto
 
@@ -203,38 +209,42 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
     dat.write(DAT_HEADER.format(filename))
     if lsr:
         dat.write(DAT_LSR_HEADER)
-        src.write(SRC_LSR_HEADER)
+        src.write(SRC_LSR_HEADER.format(speed=speed))
     
     dat_str = 'DECL E6POS XP{:}={{X {:.3f},Y {:.3f},Z {:.3f},A {:.3f},B {:.3f},C {:.3f}}}\n'
     src_str = 'LIN XP{} C_DIS C_DIS\n'
     #src_str = 'LIN XP{} CONT Vel=0.1 m/s LCPDAT1 Tool[1] Base[0]\n'
     ang = [-90.55, 55.21, -90.83]
     var_n = 0
+    z_inc = 314.95 + thickness - focus
     for layer in body:
         for path_num, path in enumerate(layer):
             if type(path) == PolyLine:
                 if lsr:
-                    src.write(lsr_on_str)
+                    src.write(lsr_on_str.format(power=power))
                 for n, point in enumerate(path):
-                    pt= (1717.55+point[0],-595.8+point[1], 314.95+point[2])
+                    pt= (1717.55+point[0],-595.8+point[1], z_inc+point[2])
                     N = var_n + n
                     dat.write(dat_str.format(N, *pt, *ang))
-                    src.write(src_str.format(N))
+                    #src.write(src_str.format(N))
+                    src.write(MOV_CMD.format(index=N, speed=speed))
                 if lsr:
                     src.write(lsr_off_str)
                 var_n = var_n + len(path) + path_num
             if type(path) == Hatch:
                 for line in path:
                     if lsr:
-                        src.write(lsr_on_str)
+                        src.write(lsr_on_str.format(power=power))
                     for n, point in enumerate(line):
-                        pt= (1717.55+point[0],-595.8+point[1], 314.95+point[2])
+                        pt= (1717.55+point[0],-595.8+point[1], z_inc+point[2])
                         N = var_n + n + 1
                         dat.write(dat_str.format(N, *pt, *ang))
-                        src.write(src_str.format(N))
+                        #src.write(src_str.format(N))
+                        src.write(MOV_CMD.format(index=N, speed=speed))
                     if lsr:
                         src.write(lsr_off_str)
                     var_n = var_n + 2
+        src.write(WAIT_CMD.format(hold_time=hold_time))
     src.write(SRC_LSR_FOOTER)
     src.write("END")
     src.close()
