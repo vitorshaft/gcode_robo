@@ -138,8 +138,7 @@ WAIT FOR  ( $IN[2] )
 ;ENDFOLD
 \n'''
 
-SRC_LSR_FOOTER = ''';ENDFOLD
-;FOLD LIN P314 CONT Vel=0.05 m/s CPDAT8 Tool[1]:teste_D70 Base[0];%{{PE}}%R 8.3.42,%MKUKATPBASIS,%CMOVE,%VLIN,%P 1:LIN, 2:P314, 3:C_DIS C_DIS, 5:0.05, 7:CPDAT8
+SRC_LSR_FOOTER = ''';FOLD LIN P314 CONT Vel=0.05 m/s CPDAT8 Tool[1]:teste_D70 Base[0];%{{PE}}%R 8.3.42,%MKUKATPBASIS,%CMOVE,%VLIN,%P 1:LIN, 2:P314, 3:C_DIS C_DIS, 5:0.05, 7:CPDAT8
 $BWDSTART=FALSE
 LDAT_ACT=LCPDAT2
 FDAT_ACT=FPEND0
@@ -154,7 +153,8 @@ $BWDSTART=FALSE
 PDAT_ACT=PPDAT4
 FDAT_ACT=FPEND
 BAS(#PTP_PARAMS,50)
-PTP XPEND C_DIS\n'''
+PTP XPEND C_DIS
+;ENDFOLD\n'''
 
 trigger_laser = ''';FOLD LSR   On Path=10 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:1400, 13:500, 16:ME1, 18:LS1, 20:LU0 
 TRIGGER WHEN PATH=10 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, LMME1) DO LSR_PRE_ON(#TECH, #OFF_SPL, LPLS1) PRIO=-1
@@ -167,7 +167,7 @@ TRIGGER WHEN PATH=10 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, L
 TRIGGER WHEN PATH=10 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LPLS1) PRIO=-1
 TRIGGER WHEN PATH=10 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
 ;ENDFOLD\n'''
-lsr_off_str = ''';FOLD LSR   Switch Path=0 mm LSet=LS4;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_SWI,%VLSR_SWI_TECH,%P 2:#TECH, 5:0, 8:1500, 11:60, 14:ME4, 16:LS2, 18:LU0 
+lsr_off_str = ''';FOLD LSR   Switch Path=10 mm LSet=LS4;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_SWI,%VLSR_SWI_TECH,%P 2:#TECH, 5:0, 8:1500, 11:60, 14:ME4, 16:LS2, 18:LU0 
 TRIGGER WHEN PATH=0 DELAY=LsrDelay(0, PreDelay, GasPreFlowValue, LMDEFAULT) DO LSR_PRE_SWI(#TECH, #OFF_SPL, LPLS2) PRIO=-1
 TRIGGER WHEN PATH=0 DELAY=LSR_ShutterDelay DO LSR_SWI(#TECH, #OFF_SPL, LMDEFAULT, LPLS2) PRIO=-1
 ;ENDFOLD
@@ -181,7 +181,7 @@ MOV_CMD = ''';FOLD LIN P{index} CONT Vel={speed} m/s CPDAT1 Tool[1]:teste_D70 Ba
 LIN XP{index} C_DIS C_DIS
 ;ENDFOLD\n'''
 
-WAIT_CMD = ''';FOLD WAIT Time={hold_time} sec; %{{PE}}%R 8.3.42,%MKUKATPBASIS,%CWAIT,%VWAIT,%P 3:{hold_time}\n'''
+WAIT_CMD = '''WAIT SEC {hold_time}\n'''
 
 #{A1 0.0000,A2 -90.0000,A3 90.0000,A4 0.0000,A5 0.0000,A6 0.0000}
 
@@ -209,14 +209,14 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
     dat.write(DAT_HEADER.format(filename))
     if lsr:
         dat.write(DAT_LSR_HEADER)
-        src.write(SRC_LSR_HEADER.format(speed=speed))
+        src.write(SRC_LSR_HEADER.format(speed=speed/1000))
     
     dat_str = 'DECL E6POS XP{:}={{X {:.3f},Y {:.3f},Z {:.3f},A {:.3f},B {:.3f},C {:.3f}}}\n'
     src_str = 'LIN XP{} C_DIS C_DIS\n'
     #src_str = 'LIN XP{} CONT Vel=0.1 m/s LCPDAT1 Tool[1] Base[0]\n'
     ang = [-90.55, 55.21, -90.83]
     var_n = 0
-    z_inc = 314.95 + thickness - focus
+    z_inc = 310.95 + thickness - 6.35
     for layer in body:
         for path_num, path in enumerate(layer):
             if type(path) == PolyLine:
@@ -227,7 +227,7 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
                     N = var_n + n
                     dat.write(dat_str.format(N, *pt, *ang))
                     #src.write(src_str.format(N))
-                    src.write(MOV_CMD.format(index=N, speed=speed))
+                    src.write(MOV_CMD.format(index=N, speed=speed/1000))
                 if lsr:
                     src.write(lsr_off_str)
                 var_n = var_n + len(path) + path_num
@@ -240,7 +240,7 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
                         N = var_n + n + 1
                         dat.write(dat_str.format(N, *pt, *ang))
                         #src.write(src_str.format(N))
-                        src.write(MOV_CMD.format(index=N, speed=speed))
+                        src.write(MOV_CMD.format(index=N, speed=speed/1000))
                     if lsr:
                         src.write(lsr_off_str)
                     var_n = var_n + 2
