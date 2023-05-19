@@ -46,16 +46,16 @@ DAT_HEADER = '''&ACCESS RVP
 &PARAM DISKPATH = KRC:\\R1\\Program
 DEFDAT  {}
 DECL BASIS_SUGG_T LAST_BASIS={{POINT1[] "P315                    ",POINT2[] "P315                    ",CP_PARAMS[] "CPDAT8                  ",PTP_PARAMS[] "PDAT4                   ",CONT[] "C_DIS                   ",CP_VEL[] "0.05                    ",PTP_VEL[] "5                       ",SYNC_PARAMS[] "SYNCDAT                 ",SPL_NAME[] "S0                      ",A_PARAMS[] "ADAT0                   "}}
-DECL E6POS XPREF={{X 1679.41125,Y -579.594604,Z 431.923492,A -87.1834106,B 60.0815239,C -88.5866776,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}}
+DECL E6POS XPREF={{X 1776.0,Y -872.0,Z 515.0,A -87.1834106,B 60.0815239,C -88.5866776,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}}
 DECL FDAT FP4={{TOOL_NO 1,BASE_NO 0,IPO_FRAME #BASE,POINT2[] " ",TQ_STATE FALSE}}
 DECL PDAT PPDAT1={{VEL 50.0000,ACC 100.000,APO_DIST 100.000,GEAR_JERK 50.0000,EXAX_IGN 0}}
 DECL LDAT LCPDAT1={{VEL 2.00000,ACC 100.000,APO_DIST 100.000,APO_FAC 50.0000,AXIS_VEL 100.000,AXIS_ACC 100.000,ORI_TYP #VAR,CIRC_TYP #BASE,JERK_FAC 50.0000,GEAR_JERK 50.0000,EXAX_IGN 0}}
 DECL PDAT PPDAT3={{VEL 100.000,ACC 100.000,APO_DIST 100.000,GEAR_JERK 50.0000,EXAX_IGN 0}}\n'''
 
-DAT_FOOTER = '''DECL E6POS XPEND0={X 1717.05981,Y -625.878357,Z 314.948792,A -90.5500107,B 55.2100487,C -90.8301239,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}
+DAT_FOOTER = '''DECL E6POS XPEND0={X 1776.0,Y -872.0,Z 515.0,A -87.1834106,B 60.0815239,C -88.5866776,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}
 DECL FDAT FPEND0={TOOL_NO 1,BASE_NO 0,IPO_FRAME #BASE,POINT2[] " ",TQ_STATE FALSE}
 DECL LDAT LCPDAT2={VEL 2.00000,ACC 100.000,APO_DIST 100.000,APO_FAC 50.0000,AXIS_VEL 100.000,AXIS_ACC 100.000,ORI_TYP #VAR,CIRC_TYP #BASE,JERK_FAC 50.0000,GEAR_JERK 50.0000,EXAX_IGN 0}
-DECL E6POS XPEND={X 1716.95618,Y -625.765625,Z 439.733551,A -90.5752258,B 55.2216797,C -90.8636856,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}
+DECL E6POS XPEND={X 1776.0,Y -872.0,Z 515.0,A -87.1834106,B 60.0815239,C -88.5866776,S 22,T 18,E1 0.0,E2 0.0,E3 0.0,E4 0.0,E5 0.0,E6 0.0}
 DECL FDAT FPEND={TOOL_NO 1,BASE_NO 0,IPO_FRAME #BASE,POINT2[] " ",TQ_STATE FALSE}
 DECL PDAT PPDAT4={VEL 100.000,ACC 100.000,APO_DIST 100.000,APO_MODE #CDIS,GEAR_JERK 50.0000,EXAX_IGN 0}\n'''
 
@@ -156,18 +156,12 @@ BAS(#PTP_PARAMS,50)
 PTP XPEND C_DIS
 ;ENDFOLD\n'''
 
-trigger_laser = ''';FOLD LSR   On Path=10 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:1400, 13:500, 16:ME1, 18:LS1, 20:LU0 
-TRIGGER WHEN PATH=10 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, LMME1) DO LSR_PRE_ON(#TECH, #OFF_SPL, LPLS1) PRIO=-1
-TRIGGER WHEN PATH=10 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LPLS1) PRIO=-1
-TRIGGER WHEN PATH=10 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
+lsr_on_str = ''';FOLD LSR   On Path=0 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:{power}, 13:500, 16:ME1, 18:LS1, 20:LU0 
+TRIGGER WHEN PATH=0 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, LMME1) DO LSR_PRE_ON(#TECH, #OFF_SPL, LPLS1) PRIO=-1
+TRIGGER WHEN PATH=0 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LPLS1) PRIO=-1
+TRIGGER WHEN PATH=0 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
 ;ENDFOLD\n'''
-
-lsr_on_str = ''';FOLD LSR   On Path=10 mm MSet=ME1 LSet=LS1;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_ON,%VLSR_ON_TECH,%P 2:#TECH, 5:10, 8:1, 10:{power}, 13:500, 16:ME1, 18:LS1, 20:LU0 
-TRIGGER WHEN PATH=10 DELAY= LsrDelay(LSR_ShutterOn, PreDelay, GasPreFlowValue, LMME1) DO LSR_PRE_ON(#TECH, #OFF_SPL, LPLS1) PRIO=-1
-TRIGGER WHEN PATH=10 DELAY=LSR_ShutterDelay DO LSR_ON(#TECH, #OFF_SPL, LMME1, LPLS1) PRIO=-1
-TRIGGER WHEN PATH=10 DELAY=GasDelay(GasPreFlowValue, LMME1) DO LSR_GAS_ON(LMME1) PRIO=-1
-;ENDFOLD\n'''
-lsr_off_str = ''';FOLD LSR   Switch Path=10 mm LSet=LS4;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_SWI,%VLSR_SWI_TECH,%P 2:#TECH, 5:0, 8:1500, 11:60, 14:ME4, 16:LS2, 18:LU0 
+lsr_off_str = ''';FOLD LSR   Switch Path=0 mm LSet=LS4;%{{PE}}%R 6.1.22,%MKUKATPLASER,%CLSR_SWI,%VLSR_SWI_TECH,%P 2:#TECH, 5:0, 8:1500, 11:400, 14:ME4, 16:LS2, 18:LU0 
 TRIGGER WHEN PATH=0 DELAY=LsrDelay(0, PreDelay, GasPreFlowValue, LMDEFAULT) DO LSR_PRE_SWI(#TECH, #OFF_SPL, LPLS2) PRIO=-1
 TRIGGER WHEN PATH=0 DELAY=LSR_ShutterDelay DO LSR_SWI(#TECH, #OFF_SPL, LMDEFAULT, LPLS2) PRIO=-1
 ;ENDFOLD
@@ -216,14 +210,14 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
     #src_str = 'LIN XP{} CONT Vel=0.1 m/s LCPDAT1 Tool[1] Base[0]\n'
     ang = [-90.55, 55.21, -90.83]
     var_n = 0
-    z_inc = 310.95 + thickness - 6.35
+    z_inc = 515 + thickness - 6.35
     for layer in body:
         for path_num, path in enumerate(layer):
             if type(path) == PolyLine:
                 if lsr:
                     src.write(lsr_on_str.format(power=power))
                 for n, point in enumerate(path):
-                    pt= (1717.55+point[0],-595.8+point[1], z_inc+point[2])
+                    pt= (1776 + point[0],-872 + point[1], z_inc + point[2])
                     N = var_n + n
                     dat.write(dat_str.format(N, *pt, *ang))
                     #src.write(src_str.format(N))
@@ -236,7 +230,7 @@ def get_krl(body: Body, filename:str, lsr:bool, power:float=None, speed: float=N
                     if lsr:
                         src.write(lsr_on_str.format(power=power))
                     for n, point in enumerate(line):
-                        pt= (1717.55+point[0],-595.8+point[1], z_inc+point[2])
+                        pt= (1776+point[0],-872+point[1], z_inc+point[2])
                         N = var_n + n + 1
                         dat.write(dat_str.format(N, *pt, *ang))
                         #src.write(src_str.format(N))
