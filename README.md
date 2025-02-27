@@ -30,7 +30,7 @@ O **gcode_robo** é uma ferramenta desenvolvida para converter arquivos G-code, 
 
 ## Pré-requisitos
 
-- Python 3.x
+- Python 3.9
 - Bibliotecas listadas em `requirements.txt` (se aplicável)
 
 ## Instalação

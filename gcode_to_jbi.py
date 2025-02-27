@@ -1,3 +1,5 @@
+import sys
+
 '''
       _              __  _   
      | |            / _|| |  
@@ -12,137 +14,119 @@
  * shaftrobotica@gmail.com
 
 '''
-#ARQUIVO DE ENTRADA DEVE TER O NOME "gcode.gcode"
-gcode = open("gcode.gcode","r")
-linhas = gcode.readlines()
-gcode.close()
-#O ARQUIVO DE SAIDA SERA SEMPRE "GCODE.JBI"
-jbi = open("GCODE.JBI","a")
-#print(linhas[:25])
 
-#[X,Y,Z,aplha,gamma,beta] DO PONTO INICIAL
-atual = [700.0,150.0,434.0,178.59,-37.97,14.69,0]
+# Verifica se o caminho do arquivo foi passado como argumento
+if len(sys.argv) != 2:
+    print("Uso correto: python gcode_to_jbi.py caminho/para/seu/arquivo.gcode")
+    sys.exit(1)
+
+gcode_path = sys.argv[1]
+
+try:
+    with open(gcode_path, "r") as gcode:
+        linhas = gcode.readlines()
+except FileNotFoundError:
+    print(f"Erro: O arquivo '{gcode_path}' não foi encontrado.")
+    sys.exit(1)
+
+# O ARQUIVO DE SAÍDA SERÁ SEMPRE "GCODE.JBI"
+jbi = open("GCODE.JBI", "a")
+
+# [X, Y, Z, alpha, gamma, beta] DO PONTO INICIAL
+atual = [700.0, 150.0, 434.0, 178.59, -37.97, 14.69, 0]
 
 nPontos = 0
-#VERIFICAR UTILIDADE DO RCONF
-l,m,n,o,p,q = 0,0,0,0,0,0
-rconf = [l,m,n,o,p,q]
-'''
-l: virar/nao virar
-m: subir/descer
-n: frente/tras
-o,p,q: <180/>=180
-'''
-#VARIAVEIS DE ITERACAO:
-lista_pontos=[]	#VAI SER CONSULTADO NO PROXIMO LOOP
-arco = 1	#INICIA O ARCO EM MODO ARCON
-zGlobal = 430	#POSICAO Z MINIMA
-for item in linhas[:5000]:
-	if item.find(';') == -1:
-		#arco = False
-		atual = [700.0,100.0,431.0,178.59,-37.97,14.69,0]
-		nPontos = nPontos+1
-		#se a linha tiver X...
-		if item.find('X') != -1:
-			xis = item.split('X')	#separa o que tem antes e depois do X
-			try:
-				xis = xis[1].split(' ')	#lista os valores separados por espaco
-			except:
-				pass
-		#se a linha tiver Y...
-		if item.find('Y') != -1:
-			ips = item.split('Y')
-			try:
-				ips = ips[1].split(' ')
-			except:
-				pass
-		#se a linha tiver Z...
-		if item.find('Z') != -1:
-			ze = item.split('Z')
-			try:
-				ze = ze[1].split(' ')
-			except:
-				pass
+l, m, n, o, p, q = 0, 0, 0, 0, 0, 0
+rconf = [l, m, n, o, p, q]
 
-		try:
-			tX = xis[0].split('.')	#pega o primeiro valor (X) e separa a parte inteira da flutuante
-			tX = float(int(tX[0]))+(float(int(tX[1]))/1000.000)	#converte para float e soma as duas partes
-			atual[0] = tX+700
-		except Exception as a:
-			print(a)
-			pass
-		try:
-			tY = ips[0].split('.')
-			tY = float(int(tY[0]))+(float(int(tY[1]))/1000.000)
-			atual[1] = tY+100
-		except Exception as b:
-			print(b)
-			pass
-		try:
-			tZ = ze[0].split('.')
-			tZ = float(int(tZ[0]))+(float(int(tZ[1]))/1000.000)
-			tZ = tZ+431	#offset do tampo da bancada
-			atual[2] = tZ
-			print("tZ: ",tZ,"zGlobal: ",zGlobal)
-			if tZ > zGlobal:
-				arco = 0	#Quando Z mudar, desligar o arco e esperar
-				zGlobal = tZ
-				atual[6] = arco
-				arco = -1
-			elif tZ == zGlobal:
-				arco = 1
-				atual[6] = arco
-				#arco = -1
-			'''
-			elif tZ == zGlobal:
-				arco = -1
-				atual[6] = arco
-			'''
-			print(atual[6])
-		except Exception as c:
-			#arco = True	#O arco deve permanecer ligado enquanto nao houver mudanca em Z
-			print(c)
-			pass
-		atual[3],atual[4],atual[5] = 178.59,-37.97,14.69
-		lista_pontos.append(atual)
-print(lista_pontos[1])
-print(lista_pontos[-1])
-npos = "///NPOS "+str(nPontos)+",0,0,0,0,0\n"
-cabecalho = ["/JOB\n","//NAME GCODE\n","//POS\n",npos,\
-    "///TOOL 0\n","///POSTYPE BASE\n","///RECTAN\n","///RCONF 0,1,1,0,0,0,0,0\n"]
-cabecalho2 = ["//INST\n","///DATE 2022/08/09 23:19\n",\
-    "///COMM Gerado com Python\n","///ATTR SC,RW,RJ\n","///GROUP1 RB1\n","NOP\n"]
+lista_pontos = []
+arco = 1
+zGlobal = 430
+
+for item in linhas[:5000]:
+    if item.find(';') == -1:
+        atual = [700.0, 100.0, 431.0, 178.59, -37.97, 14.69, 0]
+        nPontos += 1
+        if 'X' in item:
+            xis = item.split('X')
+            try:
+                xis = xis[1].split(' ')
+            except:
+                pass
+        if 'Y' in item:
+            ips = item.split('Y')
+            try:
+                ips = ips[1].split(' ')
+            except:
+                pass
+        if 'Z' in item:
+            ze = item.split('Z')
+            try:
+                ze = ze[1].split(' ')
+            except:
+                pass
+
+        try:
+            tX = float(xis[0])
+            atual[0] = tX + 700
+        except:
+            pass
+        try:
+            tY = float(ips[0])
+            atual[1] = tY + 100
+        except:
+            pass
+        try:
+            tZ = float(ze[0]) + 431
+            atual[2] = tZ
+            if tZ > zGlobal:
+                arco = 0
+                zGlobal = tZ
+                atual[6] = arco
+                arco = -1
+            elif tZ == zGlobal:
+                arco = 1
+                atual[6] = arco
+        except:
+            pass
+        
+        atual[3], atual[4], atual[5] = 178.59, -37.97, 14.69
+        lista_pontos.append(atual)
+
+npos = f"///NPOS {nPontos},0,0,0,0,0\n"
+cabecalho = [
+    "/JOB\n", "//NAME GCODE\n", "//POS\n", npos,
+    "///TOOL 0\n", "///POSTYPE BASE\n", "///RECTAN\n", "///RCONF 0,1,1,0,0,0,0,0\n"
+]
+cabecalho2 = [
+    "//INST\n", "///DATE 2022/08/09 23:19\n",
+    "///COMM Gerado com Python\n", "///ATTR SC,RW,RJ\n", "///GROUP1 RB1\n", "NOP\n"
+]
 jbi.writelines(cabecalho)
+
 listaC = []
 for item in range(nPontos):
-	numeracao = str(item)
-	diferenca = 5-len(numeracao)
-	for c in range(diferenca):
-		numeracao = "0"+numeracao
-	coordenadas = "{:.3f}".format(lista_pontos[item][0])+","+\
-		"{:.3f}".format(lista_pontos[item][1])+","+\
-		"{:.3f}".format(lista_pontos[item][2])+","+\
-		"{:.3f}".format(lista_pontos[item][3])+","+\
-		"{:.3f}".format(lista_pontos[item][4])+","+\
-		"{:.3f}".format(lista_pontos[item][5])
-	listaC.append([numeracao,coordenadas])
-	jbi.writelines(["C"+numeracao+"="+coordenadas,"\n"])
+    numeracao = str(item).zfill(5)
+    coordenadas = ",".join(f"{coord:.3f}" for coord in lista_pontos[item][:6])
+    listaC.append([numeracao, coordenadas])
+    jbi.writelines([f"C{numeracao}={coordenadas}\n"])
+
 jbi.writelines(cabecalho2)
-jbi.writelines(["MOVJ "+"C00000"+" V=150.0","\n"])
-jbi.writelines(["DOUT OT#(40) ON\n","DOUT OG#(7) 2\n","TIMER T=3.00\n","\n"])
+jbi.writelines(["MOVJ C00000 V=150.0\n", "DOUT OT#(40) ON\n", "DOUT OG#(7) 2\n", "TIMER T=3.00\n", "\n"])
 
 arcoGlobal = False
 for i in range(nPontos):
-	arco = lista_pontos[i][6]
-	
-	if arco == 0 and arcoGlobal == False:
-		jbi.writelines(["ARCOF\n","TIMER T=60.0","\n"])#,"ARCON\n"])
-		arcoGlobal = True
-	elif arco == 1 and arcoGlobal == True:
-		jbi.writelines(["ARCON","\n"])
-		arcoGlobal = False
-	jbi.writelines(["MOVJ "+"C"+listaC[i][0]+" V=5.0","\n"])
+    arco = lista_pontos[i][6]
+    
+    if arco == 0 and not arcoGlobal:
+        jbi.writelines(["ARCOF\n", "TIMER T=60.0\n"])
+        arcoGlobal = True
+    elif arco == 1 and arcoGlobal:
+        jbi.writelines(["ARCON\n"])
+        arcoGlobal = False
+    jbi.writelines([f"MOVJ C{listaC[i][0]} V=5.0\n"])
 
-jbi.writelines(["ARCOF\n"])
-jbi.writelines(["END"])
+jbi.writelines(["ARCOF\n", "END"])
 jbi.close()
+
+print("Conversão concluída! O arquivo 'GCODE.JBI' foi gerado com sucesso.")
