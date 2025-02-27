@@ -1,7 +1,3 @@
-Claro, Vitor! Acessei o repositório do **gcode_robo** e observei que já existe um arquivo `README.md` com uma breve descrição. Para aprimorá-lo, sugiro incluir seções detalhadas que forneçam uma visão mais completa do projeto. Aqui está uma proposta de estrutura para o `README.md`:
-
----
-
 # gcode_robo
 <div style="display: inline_block"><br>
     <img src="media/preview.jpg" alt="Projeto 1"  width="50%">
